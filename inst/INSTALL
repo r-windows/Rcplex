@@ -1,0 +1,47 @@
+Rcplex - R interface to the CPLEX optimization library
+
+Installation of the Rcplex package requires the following information:
+	1) the CPLEX include directory
+	2) flags to give to the C compiler when compiling the interface
+	3) the directory where the CPLEX callable library is located
+	4) other libraries CPLEX requires for proper linking
+
+Pointers on where to find this information can be found in <cplex_dir>/readme.html where <cplex_dir> is your cplex
+installation directory.
+The easiest way is to look at variables CFLAGS and CLNFLAGS in
+<cplex_path>/examples/<system>/<libformat>/Makefile. For example, that
+Makefile might have
+
+CFLAGS = -fPIC -I/usr/local/cplex90/include
+CLNFLAGS = -L/usr/local/cplex90/lib/i86_linux2_glibc2.3_gcc3.2/static_pic -lcplex -lm -lpthread
+
+Given this information, there are two ways of installing the Rcplex package:
+
+  1) Set the PKG_CFLAGS, PKG_CPPFLAGS and PKG_LIBS used by R's installation procedure directly:
+
+    R CMD INSTALL --configure-args="PKG_CFLAGS=-fPIC PKG_CPPFLAGS=-I/usr/local/cplex90/include PKG_LIBS='-L/usr/local/cplex90/i86_linux2_glibc2.3_gcc3.2/lib/static_pic -lcplex -lm -lpthread'" Rcplex_0.1-1.tar.gz 
+
+    If any of these are set, the other two must also be set or the configure script will complain.
+
+  2) Use --with-cplex-<ARG> to pass this information along:
+
+    R CMD INSTALL --configure-args="--with-cplex-include=/usr/local/cplex90/include --with-cplex-cflags=-fPIC --with-cplex-lib=/usr/local/cplex90/i86_linux2_glibc2.3_gcc3.2/lib/static_pic --with-cplex-other-libs='-lm -lpthread'" Rcplex_0.1-1.tar.gz
+
+    If any of these 4 --with-cplex-<ARG> arguments is set, the other three must also be set or the configure script will complain.
+
+There are two other way of installing, but these are NOT RECOMMENDED
+
+  3) Give the location of your CPLEX installation:
+
+    R CMD INSTALL --configure-args="--with-cplex-dir=/usr/local/cplex90" Rcplex_0.1-1.tar.gz
+
+    This method requires that cplex90 looks exactly as installed by CPLEX. It will take the first system type and library format it finds and fills the information above from the Makefile it should find in <cplex_path>/examples/<system>/<libformat>/. Info is pulled from the Makefile using awk, so it must be present for installation to work.
+
+  4) Don't give any information at all:
+
+    R CMD INSTALL Rcplex_0.1-1.tar.gz
+
+    This method looks for the CPLEX interactive optimizer and uses the directory two levels above as the CPLEX installation directory. It then does the same thing as #3 above.
+
+
+Finally, as in regular usae of CPLEX, the environment variable ILOG_LICENSE_FILE must be set to the location of a file with a valid ILOG license key.

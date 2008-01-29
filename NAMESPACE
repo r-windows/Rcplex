@@ -1,0 +1,6 @@
+import(Matrix)
+import(gtools)
+
+useDynLib(Rcplex)
+
+export(Rcplex, Rcplex.close)
