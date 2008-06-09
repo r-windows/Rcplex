@@ -57,7 +57,12 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
   structures to pass to Cplex, which is similar to the column-major
   storage mode defined by the \code{dgCMatrix-class} defined by the
   \code{Matrix} package.
-  
+
+  We also provide a simple S3-style class for sparse matrices
+  \code{simple_triplet_matrix}, as used in the \code{relations}
+  package. Matrices \code{A} and \code{C} can be objects of this class.
+  See the \code{examples} for example usage.
+    
   The \code{control} argument can be used to set CPLEX's many
   parameters, including the particular algorithm used for solving the given
   problem. See the \cite{ILOG CPLEX Parameters} guide for further
@@ -122,9 +127,6 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
 \author{Hector Corrada Bravo }
 \seealso{\code{\link{Rcplex.close}}, \code{\link{optim}}}
 \examples{
-library(gtools)
-library(Matrix)
-
 # A linear program (this is lpex1.c in the CPLEX examples)
 cvec <- c(1,2,3);
 Amat <- matrix(c(-1,1,1,-1,3,-1),byrow=TRUE,nc=3);
@@ -133,26 +135,26 @@ ub <- c(40,Inf,Inf);
 
 res <- Rcplex(cvec,Amat,bvec,ub=ub,objsense="max",sense=c('L','G'));
 print(res);
-assert(isTRUE(all.equal(res$xopt,c(40,17.5,42.5))));
-assert(isTRUE(all.equal(res$obj,202.5)));
-assert(res$status == 1);
 
 # A linear program with random data
 # use the barrier method
-n = 10; m = 20;
+n = 20; m = 25;
 nnz <- trunc(.2 * m * n);
-Amat <- spMatrix(m,n,
-             i = sample(m,nnz,replace=TRUE),
-             j = sample(n,nnz,replace=TRUE),
-             x = round(rnorm(nnz),2));
+
+# entries in simple_triplet_matrix clas
+#  *must* be in column major order
+nnz <- sort(sample(m*n,nnz,replace=FALSE)-1);
+Amat <- simple_triplet_matrix(
+             i = (nnz \%\% m) + 1,
+             j = trunc(nnz/m) + 1,
+             v = rnorm(nnz),
+             nrow=m,ncol=n);
 
 x0 <- runif(n);
-b <- attr(Amat \%*\% x0,"x");
+b <- as.matrix(Amat) \%*\% x0;
 cvec <- rnorm(n);
 
 res <- Rcplex(cvec,Amat,b,sense='E',control=list(method=4)); print(res);
-assert(isTRUE(all.equal(res$obj,as.numeric(crossprod(cvec,x0)),check.attributes=FALSE)));
-assert(res$status == 1);
 
 # A quadratic problem (this is qpex1.c in the CPLEX examples)
 cvec <- c(1,2,3);
@@ -168,9 +170,6 @@ bvec <- c(20,30);
 ub <- c(40,Inf,Inf);
 
 res <- Rcplex(cvec,Amat,bvec,Qmat,ub=ub,objsense="max"); print(res);
-assert(isTRUE(all.equal(res$xopt,c(0.1391,0.5985,0.8984),check.attr=FALSE,tol=1e-4)));
-assert(isTRUE(all.equal(res$obj,2.0156,tol=1e-4)));
-assert(res$status == 1);    
 
 # A mixed integer linear program (mipex1.c in the CPLEX examples)
 cvec <- c(1,2,3,1);
@@ -185,9 +184,6 @@ vtype <- c(rep("C",3),"I");
 
 res <- Rcplex(cvec,Amat,bvec,lb=lb,ub=ub,sense=c("L","L","E"),objsense="max",vtype=vtype);
 print(res);
-assert(isTRUE(all.equal(res$xopt,c(40,10.5,19.5,3))));
-assert(isTRUE(all.equal(res$obj,122.5)));
-assert(res$status == 101);
 
 # A mixed integer quadratic program
 cvec <- c(1,2,3,1);
@@ -206,9 +202,6 @@ vtype <- c(rep("C",3),"I");
 
 res <- Rcplex(cvec,Amat,bvec,Qmat=Qmat,ub=ub,sense=c("L","L","E"),objsense="max",vtype=vtype);
 print(res);
-assert(isTRUE(all.equal(res$xopt,c(0.0303,0,0.2727,0),tol=1e-3)));
-assert(isTRUE(all.equal(res$obj,0.4242,tol=1e-3)));
-assert(res$status == 101);
 Rcplex.close();
 }
 \keyword{optimize}

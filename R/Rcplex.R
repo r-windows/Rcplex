@@ -2,16 +2,17 @@
 Rcplex <- function(cvec,Amat,bvec,Qmat=NULL,lb=0,ub=Inf,control=list(),
                    objsense=c("min","max"),sense="L",vtype=NULL)
   {
-    if (!is.loaded("Rcplex"))
-      dyn.load("~/tree.project/src/R/Rcplex.so");
-
-    stopifnot((is(Amat,"matrix") && is.real(Amat)) || is(Amat,"dsparseMatrix"));
+    stopifnot((is(Amat,"matrix") && is.real(Amat)) ||
+              is(Amat,"dsparseMatrix") ||
+              is(Amat,"simple_triplet_matrix"));
     
     numrows <- nrow(Amat);
     numcols <- ncol(Amat);
 
     if (!is.null(Qmat)) {
-      stopifnot((is(Qmat,"matrix") && is.real(Qmat)) || is(Qmat,"dsparseMatrix"),
+      stopifnot((is(Qmat,"matrix") && is.real(Qmat)) ||
+                is(Qmat,"dsparseMatrix") ||
+                is(Qmat,"simple_triplet_matrix"),
                 nrow(Qmat) == numcols, ncol(Qmat) == numcols);
     }
     
@@ -104,6 +105,12 @@ toCPXMatrix <- function(Amat)
         matcnt <- diff(c(Amat@p,length(Amat@x)));
         matind <- Amat@i;
         matval <- Amat@x;
+    }
+    else if (is(Amat,"simple_triplet_matrix")) {
+      matbeg <- c(0L,cumsum(tabulate(Amat$j,Amat$ncol)));
+      matcnt <- tabulate(Amat$j,Amat$ncol);
+      matind <- Amat$i-1;
+      matval <- Amat$v;
     }
     else {
       matbeg <- (0:(ncol(Amat)-1)) * nrow(Amat);
