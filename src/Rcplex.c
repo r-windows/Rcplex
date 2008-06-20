@@ -3,6 +3,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <unistd.h>
+#include <time.h>
 
 #define DEFAULT_MAX_NUM_CALLS 500
 #define my_error(x) {forceCplxClose = 1; error x;}
@@ -30,6 +31,12 @@ static SEXP getListElement(SEXP list, char *str) {
   }
   return element;
 }    
+
+void wait (int seconds) {
+  clock_t endwait;
+  endwait = clock() + seconds * CLOCKS_PER_SEC;
+  while (clock() < endwait) {}
+}
 
 SEXP Rcplex(SEXP numcols_p,
 	    SEXP numrows_p,
@@ -217,7 +224,7 @@ void Rcplex_init(void) {
   if (env == NULL) {
     env = CPXopenCPLEX (&status);
     while(env == NULL && numtries > 0) {
-      sleep(30);
+      wait(30);
       numtries--;
     }
     if (env == NULL) {
