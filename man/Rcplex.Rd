@@ -106,6 +106,10 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
       -1:4. Default 0 (choose best method automatically).}
     \item{flowcovers:}{Indicator for flowcover cuts in MIP solver. Must
       be in -1:2. Default 0 (automatic).}
+    \item{round:}{Flag indicating if integer solutions for MIPs should be
+      rounded before returning. In some cases, CPLEX returns slightly
+      infeasible integer solutions. Setting this option to 1 ensures
+      that the returned solution is integral by rounding. Default 0 (no rounding).}
   }
 }
 \value{

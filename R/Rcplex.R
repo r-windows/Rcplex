@@ -66,7 +66,7 @@ Rcplex <- function(cvec,Amat,bvec,Qmat=NULL,lb=0,ub=Inf,control=list(),
 
     isQP <- ifelse(is.null(Qcpx),0,1);
     control <- check.Rcplex.control(control);
-
+    control <- split.control.list(control);
     on.exit(.C("Rcplex_free"));
     res <- .Call("Rcplex",
                  as.integer(numcols),
@@ -82,11 +82,17 @@ Rcplex <- function(cvec,Amat,bvec,Qmat=NULL,lb=0,ub=Inf,control=list(),
                  as.character(vtype),
                  as.integer(isQP),
                  as.integer(isMIP),
-                 control);
+                 control$C);
 
     names(res) <- c("xopt","obj","status","extra");
     if (isMIP) {
       names(res$extra) <- c("nodecnt","slack");
+      if (control$R$round) {
+        intvars <- which(vtype != 'C')
+        res$xopt[intvars] <- round(res$xopt[intvars])
+        res$obj <- if (isQP) crossprod(res$xopt,as.matrix(Qmat)%*%res$xopt)+
+          sum(cvec*res$xopt) else sum(cvec*res$xopt)
+      }
     }
     else {
       names(res$extra) <- c("lambda","slack");
@@ -138,7 +144,8 @@ check.Rcplex.control <- function(control)
                 nodesel=1,
                 probe=0,
                 varsel=0,
-                flowcovers=0);
+                flowcovers=0,
+                round=0);
     
     con[names(control)] <- control;
 
@@ -245,7 +252,24 @@ check.Rcplex.control <- function(control)
         con$flowcovers <- 0;
       }
     }
+
+    if (!is.null(con$round)) {
+      if (!con$round %in% c(0,1)) {
+        warning("Improper value for round option: Using default");
+        con$round <- 0;
+      }
+    }
     return(con);
+  }
+
+split.control.list <- function(control)
+  {
+    R.names <- c("round")
+    C.names <- setdiff(names(control),R.names)
+    
+    R.control <- control[R.names]
+    C.control <- control[C.names]
+    return(list(R=R.control,C=C.control))
   }
 
 Rcplex.close <- function() {
