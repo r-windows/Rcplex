@@ -20,7 +20,7 @@
 \usage{
 Rcplex(cvec, Amat, bvec, Qmat = NULL,
        lb = 0, ub = Inf, control = list(),
-       objsense = c("min", "max"), sense = "L", vtype = NULL)
+       objsense = c("min", "max"), sense = "L", vtype = NULL, n = 1)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -49,20 +49,31 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
     \code{length(vtype)==1} the same value is taken for all
     variables. Otherwise, requires
     \code{length(vtype)==length(ctype)}. Default \code{"C"}.}
+  \item{n}{ Determines the maximal number of solutions the solver should
+    return in case of an MIP with more than one solution at
+    optimum. If CPLEX should search for "all" solutions then
+    \code{n} has to be set to \code{NA}. In CPLEX this is also called
+    populating the solution pool. The parameters \code{solnpoolagap},
+    \code{solnpoolgap}, and \code{solnpoolintensity} influence the
+    search for multiple solutions (see also the \code{control}
+    argument below for details). Available from CPLEX 11.0 on. \code{Rcplex()}
+    raises a warning if an older version of CPLEX is used and \code{n>1}. Default \code{1}.} 
 }
 \details{
   Matrices \code{A} and \code{C} may be sparse matrices from a class in
-  the hierarchy defined by the \code{Matrix} package. In that case, the
+  the hierarchy defined by the \pkg{Matrix} package. In that case, the
   internal casting functions are used to create the proper data
-  structures to pass to Cplex, which is similar to the column-major
+  structures to pass to CPLEX, which is similar to the column-major
   storage mode defined by the \code{dgCMatrix-class} defined by the
-  \code{Matrix} package.
+  \pkg{Matrix} package.
 
   We also provide a simple S3-style class for sparse matrices
-  \code{simple_triplet_matrix}, as used in the \code{relations}
+  \code{simple_triplet_matrix}, as used in the \pkg{relations}
   package. Matrices \code{A} and \code{C} can be objects of this class.
-  See the \code{examples} for example usage.
-    
+  See the \code{examples} for example
+  usage. \code{simple_triplet_matrix} objects MUST be in column-major
+  order.
+  
   The \code{control} argument can be used to set CPLEX's many
   parameters, including the particular algorithm used for solving the given
   problem. See the \cite{ILOG CPLEX Parameters} guide for further
@@ -89,6 +100,8 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
     \item{itlim:}{Maximum number of simplex iterations. Can be any
       nonnegative number. Default 1e8.}
     \item{epagap:}{Absolute MIP optimality gap tolerance. Can be any
+      nonnegative number. Default 1e-6.}
+    \item{epgap:}{Relative MIP optimality gap tolerance. Can be any
       nonnegative number. Default 1e-4.}
     \item{tilim:}{Time limit in seconds of call to optimizer. Can be any
       nonnegative number. Default 1e75.}
@@ -106,6 +119,16 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
       -1:4. Default 0 (choose best method automatically).}
     \item{flowcovers:}{Indicator for flowcover cuts in MIP solver. Must
       be in -1:2. Default 0 (automatic).}
+    \item{solnpoolagap:}{Sets an absolute tolerance on the objective
+      value for the solutions in the solution pool. Can be any
+      nonnegative real number. Ignored in versions < 11.0 of CPLEX. Default 0}
+    \item{solnpoolgap:}{Sets a relative tolerance on the objective
+      value for the solutions in the solution pool. Can be any
+      nonnegative real number. Ignored in versions < 11.0 of CPLEX. Default 0}
+    \item{solnpoolintensity:}{Controls the trade-off between the number
+      of solutions generated for the solution pool and the amount of
+      time and memory consumed. Must be in 0:4. Ignored in versions <
+      11.0 of CPLEX. Default 0 (automatic).}
     \item{round:}{Flag indicating if integer solutions for MIPs should be
       rounded before returning. In some cases, CPLEX returns slightly
       infeasible integer solutions. Setting this option to 1 ensures
@@ -113,100 +136,106 @@ Rcplex(cvec, Amat, bvec, Qmat = NULL,
   }
 }
 \value{
-  Returns a list with the following components:
-  \item{xopt }{Values of problem variables at optimum}
-  \item{obj }{Value of objective function at optimum}
-  \item{status}{Solution status. 1 means successful completion. Check
-    CPLEX documentation for status codes}
+  Returns a list with the following components, or, if \code{n > 1} a list
+  of length equal to the number of optimal solutions containing the
+  following components for each solution:
+  \item{xopt}{Values of problem variables at optimum.}
+  \item{obj }{Value of objective function at optimum.}
+  \item{status}{Solution status. See
+    CPLEX documentation for meaning of status codes.}
   \item{extra}{List with extra information about solution with components
     \describe{
       \item{slack:}{Values of slack variables for inequality
-	constraints}
+	constraints.}
       \item{nodecnt:}{(IF MIP PROBLEM) Number of nodes in the search tree evaluated}
       \item{lambda:}{(IF NOT MIP PROBLEM) Values of dual variables at optimum}
     }
   }
 }
 \references{ILOG CPLEX User's Guide }
-\author{Hector Corrada Bravo }
+\author{Hector Corrada Bravo and Stefan Theussl }
 \seealso{\code{\link{Rcplex.close}}, \code{\link{optim}}}
 \examples{
-# A linear program (this is lpex1.c in the CPLEX examples)
-cvec <- c(1,2,3);
-Amat <- matrix(c(-1,1,1,-1,3,-1),byrow=TRUE,nc=3);
-bvec <- c(20,-30);
-ub <- c(40,Inf,Inf);
+## A linear program (this is lpex1.c in the CPLEX examples)
+cvec <- c(1,2,3)
+Amat <- matrix(c(-1,1,1,-1,3,-1),byrow=TRUE,nc=3)
+bvec <- c(20,-30)
+ub <- c(40,Inf,Inf)
 
-res <- Rcplex(cvec,Amat,bvec,ub=ub,objsense="max",sense=c('L','G'));
-print(res);
+res <- Rcplex(cvec,Amat,bvec,ub=ub,objsense="max",sense=c('L','G'))
+print(res)
 
-# A linear program with random data
-# use the barrier method
-n = 20; m = 25;
-nnz <- trunc(.2 * m * n);
+## A linear program with random data
+## use the barrier method
+n = 20; m = 25
+nnz <- trunc(.2 * m * n)
 
-# entries in simple_triplet_matrix clas
-#  *must* be in column major order
-nnz <- sort(sample(m*n,nnz,replace=FALSE)-1);
+## entries in simple_triplet_matrix clas
+##  *must* be in column major order
+nnz <- sort(sample(m*n,nnz,replace=FALSE)-1)
 Amat <- simple_triplet_matrix(
              i = (nnz \%\% m) + 1,
              j = trunc(nnz/m) + 1,
              v = rnorm(nnz),
-             nrow=m,ncol=n);
+             nrow=m,ncol=n)
 
-x0 <- runif(n);
-b <- as.matrix(Amat) \%*\% x0;
-cvec <- rnorm(n);
+x0 <- runif(n)
+b <- as.matrix(Amat) \%*\% x0
+cvec <- rnorm(n)
 
-res <- Rcplex(cvec,Amat,b,sense='E',control=list(method=4)); print(res);
+res <- Rcplex(cvec,Amat,b,sense='E',control=list(method=4))
+print(res)
 
-# A quadratic problem (this is qpex1.c in the CPLEX examples)
-cvec <- c(1,2,3);
+## A quadratic problem (this is qpex1.c in the CPLEX examples)
+cvec <- c(1,2,3)
 Qmat <- matrix(c(-33,6,0,
                   6,-22,11.5,
                   0,11.5,-11),
                 byrow=TRUE,
-                nc=3);
+                nc=3)
 Amat <- matrix(c(-1,1,1,
                   1,-3,1),
-               byrow=TRUE,nc=3);
-bvec <- c(20,30);
-ub <- c(40,Inf,Inf);
+               byrow=TRUE,nc=3)
+bvec <- c(20,30)
+ub <- c(40,Inf,Inf)
 
-res <- Rcplex(cvec,Amat,bvec,Qmat,ub=ub,objsense="max"); print(res);
+res <- Rcplex(cvec,Amat,bvec,Qmat,ub=ub,objsense="max")
+print(res)
 
-# A mixed integer linear program (mipex1.c in the CPLEX examples)
-cvec <- c(1,2,3,1);
+## A mixed integer linear program (mipex1.c in the CPLEX examples)
+cvec <- c(1,2,3,1)
 Amat <- matrix(c(-1,1,1,10,
                   1,-3,1,0,
                   0,1,0,-3.5),
-               byrow=TRUE, nc=4);
-bvec <- c(20,30,0);
-lb <- c(0,0,0,2);
-ub <- c(40,Inf,Inf,3);
-vtype <- c(rep("C",3),"I");
+               byrow=TRUE, nc=4)
+bvec <- c(20,30,0)
+lb <- c(0,0,0,2)
+ub <- c(40,Inf,Inf,3)
+vtype <- c(rep("C",3),"I")
 
-res <- Rcplex(cvec,Amat,bvec,lb=lb,ub=ub,sense=c("L","L","E"),objsense="max",vtype=vtype);
-print(res);
+res <- Rcplex(cvec,Amat,bvec,lb=lb,ub=ub,sense=c("L","L","E"),
+              objsense="max",vtype=vtype)
+print(res)
 
-# A mixed integer quadratic program
-cvec <- c(1,2,3,1);
+## A mixed integer quadratic program
+cvec <- c(1,2,3,1)
 Qmat <- matrix(c(-33,6,0,0,
                   6,-22,11.5,0,
                   0,11.5,-11,0,
                   0,0,0,0),
-               byrow=TRUE, nc=4);
+               byrow=TRUE, nc=4)
 Amat <- matrix(c(-1,1,1,10,
                   1,-3,1,0,
                   0,1,0,-3.5),
-               byrow=TRUE, nc=4);
-bvec <- c(20,30,0);
-ub <- c(40,Inf,Inf,3);
-vtype <- c(rep("C",3),"I");
+               byrow=TRUE, nc=4)
+bvec <- c(20,30,0)
+ub <- c(40,Inf,Inf,3)
+vtype <- c(rep("C",3),"I")
 
-res <- Rcplex(cvec,Amat,bvec,Qmat=Qmat,ub=ub,sense=c("L","L","E"),objsense="max",vtype=vtype);
-print(res);
-Rcplex.close();
+res <- Rcplex(cvec,Amat,bvec,Qmat=Qmat,ub=ub,sense=c("L","L","E"),
+              objsense="max",vtype=vtype)
+print(res)
+Rcplex.close()
 }
 \keyword{optimize}
 
