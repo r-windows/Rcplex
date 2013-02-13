@@ -1,6 +1,6 @@
 Package: Rcplex
-Version: 0.3-0
-Date: 2011-05-05
+Version: 0.3-1
+Date: 2013-02-13
 Title: R interface to CPLEX
 Author: Hector Corrada Bravo, with contributions from Stefan Theussl
         and Kurt Hornik
@@ -19,6 +19,6 @@ Depends: R (>= 2.6.0), slam
 Enhances: Matrix
 License: LGPL (>= 2.0)
 URL: http://R-Forge.R-project.org/projects/rcplex
-Packaged: 2011-05-05 11:33:09 UTC; theussl
+Packaged: 2013-02-13 11:00:38 UTC; hornik
 Repository: CRAN
-Date/Publication: 2011-05-06 05:59:33
+Date/Publication: 2013-02-13 12:05:25
