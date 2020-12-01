@@ -1,7 +1,8 @@
+CPLEX_DIR ?= C:/Program Files/IBM/ILOG/CPLEX_Studio1210/opl
 ifeq "$(WIN)" "64"
-PKG_LIBS = -L"${CPLEX_DIR}/bin/x64_win64" -lcplex1263 -lm
-PKG_CPPFLAGS = -D_LP64 -I"${CPLEX_DIR}/include"
+PKG_LIBS = -L"${CPLEX_DIR}/bin/x64_win64" -lcplex12100 -lm
+PKG_CPPFLAGS = -D_LP64 -I"${CPLEX_DIR}/include" -DBUILD_CPXSTATIC
 else
-PKG_LIBS = -L"${CPLEX_DIR}/bin/x86_win32" -lcplex1263 -lm
-PKG_CPPFLAGS = -I"${CPLEX_DIR}/include"
+PKG_LIBS = -L"${CPLEX_DIR}/bin/x86_win32" -lcplex12100 -lm
+PKG_CPPFLAGS = -I"${CPLEX_DIR}/include" -DBUILD_CPXSTATIC
 endif
